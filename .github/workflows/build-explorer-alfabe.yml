@@ -1,0 +1,41 @@
+name: Build Native Explorer Alfabe
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "explorer_alfabe_native/**"
+      - ".github/workflows/build-explorer-alfabe.yml"
+
+jobs:
+  build:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build native Windows helper
+        shell: cmd
+        run: |
+          if not exist explorer_alfabe_native\dist mkdir explorer_alfabe_native\dist
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /std:c++20 /EHsc /O2 /DUNICODE /D_UNICODE /Fe:explorer_alfabe_native\dist\Explorer-Alfabe-Cubugu.exe explorer_alfabe_native\ExplorerAlfabeCubugu.cpp /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib dwmapi.lib ole32.lib oleaut32.lib uiautomationcore.lib
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup --yes --no-progress
+
+      - name: Create one-click installer
+        shell: powershell
+        run: |
+          Set-Location explorer_alfabe_native
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" ExplorerAlfabe.iss
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Explorer-Alfabe-Cubugu-v2.0.0
+          path: |
+            explorer_alfabe_native/dist/Explorer-Alfabe-Cubugu-Kurulum-v2.0.0.exe
+            explorer_alfabe_native/README.txt
