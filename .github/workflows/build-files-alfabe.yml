@@ -1,0 +1,104 @@
+name: Build Files Alfabe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "files-alfabe.patch"
+      - ".github/workflows/build-files-alfabe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 90
+
+    env:
+      CONFIGURATION: Release
+      PLATFORM: x64
+      APPX_PACKAGE_DIR: ${{ github.workspace }}\artifacts\AppxPackages\
+      APPX_CERT_PATH: ${{ github.workspace }}\Files\.github\workflows\FilesApp_SelfSigned.pfx
+
+    steps:
+      - name: Checkout build files
+        uses: actions/checkout@v4
+
+      - name: Get Files 4.0.38
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch v4.0.38 https://github.com/files-community/Files.git Files
+          Set-Location Files
+          git apply "$env:GITHUB_WORKSPACE\files-alfabe.patch"
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: Files/global.json
+
+      - name: Restore
+        shell: pwsh
+        working-directory: Files
+        run: |
+          msbuild Files.slnx `
+            -t:Restore `
+            -p:Platform=$env:PLATFORM `
+            -p:Configuration=$env:CONFIGURATION `
+            -p:PublishReadyToRun=true `
+            -v:quiet
+
+      - name: Create temporary installation certificate
+        shell: pwsh
+        working-directory: Files
+        run: ./.github/scripts/Generate-SelfCertPfx.ps1 -Destination "$env:APPX_CERT_PATH"
+
+      - name: Build signed MSIX
+        shell: pwsh
+        working-directory: Files
+        run: |
+          msbuild src/Files.App/Files.App.csproj `
+            -t:Build `
+            -p:Configuration=$env:CONFIGURATION `
+            -p:Platform=$env:PLATFORM `
+            -p:AppxBundlePlatforms=$env:PLATFORM `
+            -p:AppxBundle=Always `
+            -p:GenerateAppxPackageOnBuild=true `
+            -p:UapAppxPackageBuildMode=SideloadOnly `
+            -p:AppxPackageDir="$env:APPX_PACKAGE_DIR" `
+            -p:AppxPackageSigningEnabled=true `
+            -p:PackageCertificateKeyFile="$env:APPX_CERT_PATH" `
+            -p:PackageCertificatePassword="" `
+            -p:PackageCertificateThumbprint="" `
+            -v:quiet
+
+      - name: Export public certificate and instructions
+        shell: pwsh
+        run: |
+          $cert = Import-PfxCertificate -FilePath "$env:APPX_CERT_PATH" -CertStoreLocation Cert:\CurrentUser\My
+          Export-Certificate -Cert $cert -FilePath "${{ github.workspace }}\artifacts\FilesAlfabe.cer"
+          Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)"
+          Remove-Item "$env:APPX_CERT_PATH" -Force
+          @"
+          FILES ALFABE KURULUMU
+
+          1. FilesAlfabe.cer dosyasina cift tiklayin.
+          2. Sertifikayi Yerel Makine > Guvenilen Kisiler deposuna kurun.
+          3. AppxPackages klasorundeki .msixbundle dosyasina cift tiklayin.
+          4. Baslat menusunden Files Alfabe'yi acin.
+          "@ | Set-Content "${{ github.workspace }}\artifacts\KURULUM.txt" -Encoding UTF8
+
+      - name: Upload Files Alfabe
+        uses: actions/upload-artifact@v4
+        with:
+          name: Files-Alfabe-x64
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 30
