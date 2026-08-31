@@ -1,0 +1,224 @@
+diff --git a/src/Files.App/Package.appxmanifest b/src/Files.App/Package.appxmanifest
+index 53ada86..61f7b60 100644
+--- a/src/Files.App/Package.appxmanifest
++++ b/src/Files.App/Package.appxmanifest
+@@ -14,12 +14,12 @@
+     IgnorableNamespaces="mp rescap desktop desktop4 desktop6 uap uap5">
+ 
+     <Identity
+-        Name="FilesDev"
++        Name="FilesAlfabe"
+         Publisher="CN=Files"
+         Version="4.0.38.0" />
+ 
+     <Properties>
+-        <DisplayName>Files - Dev</DisplayName>
++        <DisplayName>Files Alfabe</DisplayName>
+         <PublisherDisplayName>Yair A</PublisherDisplayName>
+         <Logo>Assets\AppTiles\Dev\StoreLogo.png</Logo>
+         <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
+@@ -89,7 +89,7 @@
+             desktop4:SupportsMultipleInstances="true">
+ 
+             <uap:VisualElements
+-                DisplayName="Files - Dev"
++                DisplayName="Files Alfabe"
+                 Description="Organize your files and folders easily. Robust multitasking experiences, helpful tags, and deep integrations add to an intuitive design, made by the community."
+                 Square150x150Logo="Assets\AppTiles\Dev\Square150x150Logo.png"
+                 Square44x44Logo="Assets\AppTiles\Dev\Square44x44Logo.png"
+@@ -99,7 +99,7 @@
+                     Wide310x150Logo="Assets\AppTiles\Dev\Wide310x150Logo.png"
+                     Square71x71Logo="Assets\AppTiles\Dev\Small71x71Logo.png"
+                     Square310x310Logo="Assets\AppTiles\Dev\Large310x310Logo.png"
+-                    ShortName="Files - Dev">
++                    ShortName="Files Alfabe">
+                     <uap:ShowNameOnTiles>
+                         <uap:ShowOn Tile="square150x150Logo" />
+                         <uap:ShowOn Tile="wide310x150Logo" />
+@@ -121,13 +121,13 @@
+ 
+                 <uap:Extension Category="windows.protocol">
+                     <!--  This value changes based on the build branch by CI (files-stable, files-preview, files-dev).  -->
+-                    <uap:Protocol ReturnResults="none" Name="files-dev" />
++                    <uap:Protocol ReturnResults="none" Name="files-alfabe" />
+                 </uap:Extension>
+ 
+                 <uap5:Extension Category="windows.appExecutionAlias">
+                     <uap5:AppExecutionAlias>
+                         <!--  This value changes based on the build branch by CI (files-stable, files-preview, files-dev).  -->
+-                        <uap5:ExecutionAlias Alias="files-dev.exe" />
++                        <uap5:ExecutionAlias Alias="files-alfabe.exe" />
+                     </uap5:AppExecutionAlias>
+                 </uap5:Extension>
+ 
+diff --git a/src/Files.App/UserControls/Toolbar.xaml b/src/Files.App/UserControls/Toolbar.xaml
+index 000d1dd..8829d41 100644
+--- a/src/Files.App/UserControls/Toolbar.xaml
++++ b/src/Files.App/UserControls/Toolbar.xaml
+@@ -1173,6 +1173,60 @@
+ 
+ 			</AppBarButton>
+ 
++			<!--  Alphabet navigation  -->
++			<AppBarButton
++				x:Name="AlphabetButton"
++				Width="Auto"
++				MinWidth="46"
++				x:Load="{x:Bind ViewModel.InstanceViewModel.IsPageTypeNotHome, Mode=OneWay}"
++				AutomationProperties.Name="A-Z"
++				Label="A-Z"
++				LabelPosition="Collapsed"
++				Style="{StaticResource ToolBarAppBarButtonFlyoutStyle}"
++				ToolTipService.ToolTip="A-Z">
++
++				<FontIcon FontFamily="Segoe UI Variable Text" FontSize="12" Glyph="A-Z" />
++
++				<AppBarButton.Flyout>
++					<Flyout
++						x:Name="AlphabetFlyout"
++						contract8Present:ShouldConstrainToRootBounds="False"
++						Opening="AlphabetFlyout_Opening"
++						Placement="Bottom">
++						<Border
++							Padding="8"
++							Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
++							CornerRadius="8">
++							<ItemsControl
++								x:Name="AlphabetItems"
++								ItemsSource="{x:Bind AlphabetLetters, Mode=OneTime}">
++								<ItemsControl.ItemsPanel>
++									<ItemsPanelTemplate>
++										<VariableSizedWrapGrid
++											ItemHeight="34"
++											ItemWidth="34"
++											MaximumRowsOrColumns="2"
++											Orientation="Horizontal" />
++									</ItemsPanelTemplate>
++								</ItemsControl.ItemsPanel>
++								<ItemsControl.ItemTemplate>
++									<DataTemplate>
++										<Button
++											Width="32"
++											Height="32"
++											MinWidth="0"
++											Padding="0"
++											Click="AlphabetLetter_Click"
++											Content="{Binding}"
++											Tag="{Binding}" />
++									</DataTemplate>
++								</ItemsControl.ItemTemplate>
++							</ItemsControl>
++						</Border>
++					</Flyout>
++				</AppBarButton.Flyout>
++			</AppBarButton>
++
+ 			<!--  Toggle Preview\Details Pane  -->
+ 			<AppBarToggleButton
+ 				x:Name="PreviewPane"
+@@ -1191,4 +1245,4 @@
+ 		</CommandBar>
+ 
+ 	</Grid>
+-</UserControl>
+\ No newline at end of file
++</UserControl>
+diff --git a/src/Files.App/UserControls/Toolbar.xaml.cs b/src/Files.App/UserControls/Toolbar.xaml.cs
+index 9bea87a..e939797 100644
+--- a/src/Files.App/UserControls/Toolbar.xaml.cs
++++ b/src/Files.App/UserControls/Toolbar.xaml.cs
+@@ -15,6 +15,12 @@ namespace Files.App.UserControls
+ {
+ 	public sealed partial class Toolbar : UserControl
+ 	{
++		public IReadOnlyList<string> AlphabetLetters { get; } =
++		[
++			"A", "B", "C", "Ç", "D", "E", "F", "G", "Ğ", "H", "I", "İ", "J", "K", "L", "M", "N", "O", "Ö",
++			"P", "Q", "R", "S", "Ş", "T", "U", "Ü", "V", "W", "X", "Y", "Z"
++		];
++
+ 		private readonly IUserSettingsService UserSettingsService = Ioc.Default.GetRequiredService<IUserSettingsService>();
+ 		private readonly ICommandManager Commands = Ioc.Default.GetRequiredService<ICommandManager>();
+ 		private readonly IModifiableCommandManager ModifiableCommands = Ioc.Default.GetRequiredService<IModifiableCommandManager>();
+@@ -34,6 +40,21 @@ namespace Files.App.UserControls
+ 			InitializeComponent();
+ 		}
+ 
++		private void AlphabetFlyout_Opening(object? sender, object e)
++		{
++			var useCompactLayout = ActualWidth < 900;
++			AlphabetItems.Width = useCompactLayout ? 374 : 544;
++
++			if (AlphabetItems.ItemsPanelRoot is VariableSizedWrapGrid wrapGrid)
++				wrapGrid.MaximumRowsOrColumns = useCompactLayout ? 3 : 2;
++		}
++
++		private void AlphabetLetter_Click(object sender, RoutedEventArgs e)
++		{
++			if (sender is Button { Tag: string letter })
++				PageContext.ShellPage?.SlimContentPage?.JumpToPrefix(letter);
++		}
++
+ 		private void NewEmptySpace_Opening(object sender, object e)
+ 		{
+ 			if (ViewModel is null)
+diff --git a/src/Files.App/Views/Layouts/BaseLayoutPage.cs b/src/Files.App/Views/Layouts/BaseLayoutPage.cs
+index 31ca131..9ea6f15 100644
+--- a/src/Files.App/Views/Layouts/BaseLayoutPage.cs
++++ b/src/Files.App/Views/Layouts/BaseLayoutPage.cs
+@@ -172,6 +172,42 @@ namespace Files.App.Views.Layouts
+ 		}
+ 
+ 		private string jumpString = string.Empty;
++
++		public void JumpToPrefix(string prefix)
++		{
++			if (string.IsNullOrWhiteSpace(prefix))
++				return;
++
++			var shellViewModel = ParentShellPageInstance.GetRequiredShellViewModel();
++			var items = shellViewModel.FilesAndFolders.ToList();
++			var selectedItem = IsItemSelected ? SelectedItem : null;
++			var startIndex = selectedItem is null ? 0 : items.IndexOf(selectedItem) + 1;
++
++			ListedItem? match = items
++				.Skip(startIndex)
++				.Concat(items.Take(startIndex))
++				.FirstOrDefault(item => GetAlphabeticalName(item.Name).StartsWith(prefix, StringComparison.CurrentCultureIgnoreCase));
++
++			if (match is null)
++				return;
++
++			ItemManipulationModel.SetSelectedItem(match);
++			ItemManipulationModel.ScrollIntoView(match);
++			ItemManipulationModel.FocusSelectedItems();
++		}
++
++		private static string GetAlphabeticalName(string? name)
++		{
++			if (string.IsNullOrEmpty(name))
++				return string.Empty;
++
++			var firstLetterOrDigit = 0;
++			while (firstLetterOrDigit < name.Length && !char.IsLetterOrDigit(name[firstLetterOrDigit]))
++				firstLetterOrDigit++;
++
++			return name[firstLetterOrDigit..];
++		}
++
+ 		public string JumpString
+ 		{
+ 			get => jumpString;
+diff --git a/src/Files.App/Views/Layouts/IBaseLayoutPage.cs b/src/Files.App/Views/Layouts/IBaseLayoutPage.cs
+index b90e500..20c00f4 100644
+--- a/src/Files.App/Views/Layouts/IBaseLayoutPage.cs
++++ b/src/Files.App/Views/Layouts/IBaseLayoutPage.cs
+@@ -25,6 +25,8 @@ namespace Files.App.Views.Layouts
+ 
+ 		ItemManipulationModel ItemManipulationModel { get; }
+ 
++		void JumpToPrefix(string prefix);
++
+ 		InfoPaneViewModel InfoPaneViewModel { get; }
+ 
+ 		SelectedItemsPropertiesViewModel SelectedItemsPropertiesViewModel { get; }
