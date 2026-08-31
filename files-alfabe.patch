@@ -124,7 +124,7 @@ index 000d1dd..8829d41 100644
 \ No newline at end of file
 +</UserControl>
 diff --git a/src/Files.App/UserControls/Toolbar.xaml.cs b/src/Files.App/UserControls/Toolbar.xaml.cs
-index 9bea87a..e939797 100644
+index 9bea87a..8f4b6d7 100644
 --- a/src/Files.App/UserControls/Toolbar.xaml.cs
 +++ b/src/Files.App/UserControls/Toolbar.xaml.cs
 @@ -15,6 +15,12 @@ namespace Files.App.UserControls
@@ -156,14 +156,28 @@ index 9bea87a..e939797 100644
 +		private void AlphabetLetter_Click(object sender, RoutedEventArgs e)
 +		{
 +			if (sender is Button { Tag: string letter })
-+				PageContext.ShellPage?.SlimContentPage?.JumpToPrefix(letter);
++				ViewModel?.JumpToPrefix(letter);
 +		}
 +
  		private void NewEmptySpace_Opening(object sender, object e)
  		{
  			if (ViewModel is null)
+diff --git a/src/Files.App/ViewModels/UserControls/NavigationToolbarViewModel.cs b/src/Files.App/ViewModels/UserControls/NavigationToolbarViewModel.cs
+index 86637f1..a1eec83 100644
+--- a/src/Files.App/ViewModels/UserControls/NavigationToolbarViewModel.cs
++++ b/src/Files.App/ViewModels/UserControls/NavigationToolbarViewModel.cs
+@@ -80,6 +80,9 @@ namespace Files.App.ViewModels.UserControls
+ 
+ 		public bool ShowShelfPaneToggleButton => AppearanceSettingsService.ShowShelfPaneToggleButton && AppLifecycleHelper.AppEnvironment is AppEnvironment.Dev;
+ 
++		public void JumpToPrefix(string prefix)
++			=> ContentPageContext.ShellPage?.SlimContentPage?.JumpToPrefix(prefix);
++
+ 		private NavigationToolbar? AddressToolbar => (MainWindow.Instance.Content as Frame)?.FindDescendant<NavigationToolbar>();
+ 
+ 		public bool HasAdditionalAction =>
 diff --git a/src/Files.App/Views/Layouts/BaseLayoutPage.cs b/src/Files.App/Views/Layouts/BaseLayoutPage.cs
-index 31ca131..9ea6f15 100644
+index 31ca131..d5a7d05 100644
 --- a/src/Files.App/Views/Layouts/BaseLayoutPage.cs
 +++ b/src/Files.App/Views/Layouts/BaseLayoutPage.cs
 @@ -172,6 +172,42 @@ namespace Files.App.Views.Layouts
@@ -176,7 +190,7 @@ index 31ca131..9ea6f15 100644
 +			if (string.IsNullOrWhiteSpace(prefix))
 +				return;
 +
-+			var shellViewModel = ParentShellPageInstance.GetRequiredShellViewModel();
++			var shellViewModel = ParentShellPageInstance!.ShellViewModel;
 +			var items = shellViewModel.FilesAndFolders.ToList();
 +			var selectedItem = IsItemSelected ? SelectedItem : null;
 +			var startIndex = selectedItem is null ? 0 : items.IndexOf(selectedItem) + 1;
