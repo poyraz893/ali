@@ -19,7 +19,8 @@ jobs:
         shell: cmd
         run: |
           if not exist explorer_alfabe_native\dist mkdir explorer_alfabe_native\dist
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          for /f "usebackq tokens=*" %%i in (`"%ProgramData%\Chocolatey\bin\vswhere.exe" -latest -products * -property installationPath`) do set VSINSTALL=%%i
+          call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat"
           cl /nologo /std:c++20 /EHsc /O2 /DUNICODE /D_UNICODE /Fe:explorer_alfabe_native\dist\Explorer-Alfabe-Cubugu.exe explorer_alfabe_native\ExplorerAlfabeCubugu.cpp /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib dwmapi.lib ole32.lib oleaut32.lib uiautomationcore.lib
 
       - name: Install Inno Setup
