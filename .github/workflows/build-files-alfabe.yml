@@ -31,7 +31,7 @@ jobs:
         run: |
           git config --global core.autocrlf false
           $patchPath = "$env:GITHUB_WORKSPACE\files-alfabe.patch"
-          $patch = [System.IO.File]::ReadAllText($patchPath).Replace(`"`r`n`", `"`n`")
+          $patch = [System.IO.File]::ReadAllText($patchPath).Replace([Environment]::NewLine, [string][char]10)
           [System.IO.File]::WriteAllText($patchPath, $patch, [System.Text.UTF8Encoding]::new($false))
           git clone --depth 1 --branch v4.0.38 https://github.com/files-community/Files.git Files
           Set-Location Files
